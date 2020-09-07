@@ -4,6 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\User;
+use App\Role;
+use Illuminate\Support\Facades\Hash;
+use Gate;
+
 class UserController extends Controller
 {
     /**
@@ -14,7 +18,7 @@ class UserController extends Controller
     public function index()
     {
         $users = User::all();
-        return view('user.index')->with('users',$users);
+        return view('users.index')->with('users',$users);
     }
 
     /**
@@ -24,7 +28,8 @@ class UserController extends Controller
      */
     public function create()
     {
-        //
+        $roles = Role::all();
+        return view('users.create')->with('roles',$roles);
     }
 
     /**
@@ -35,7 +40,13 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make('12345678')
+        ]);
+        $user->roles()->attach($request->roles);
+        return redirect()->route('users.index');
     }
 
     /**
@@ -55,9 +66,15 @@ class UserController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function edit($id)
+    public function edit(User $user)
     {
-        //
+
+        if(Gate::denies('edit-users')) {
+            return redirect()->route('users.index');
+        }
+
+        $roles = Role::all();
+        return view('users.edit',['user' => $user, 'roles' => $roles]);
     }
 
     /**
@@ -67,9 +84,14 @@ class UserController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, User $user)
     {
-        //
+        $user->update([
+            'name' => $request->name,
+            'email' => $request->email,
+        ]);
+        $user->roles()->sync($request->roles);
+        return redirect()->route('users.index');
     }
 
     /**
@@ -78,8 +100,13 @@ class UserController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy(User $user)
     {
-        //
+        if(Gate::denies('delete-users')) {
+            return redirect()->route('users.index');
+        }
+        $user->roles()->detach();
+        $user->delete();
+        return redirect()->route('users.index');
     }
 }
