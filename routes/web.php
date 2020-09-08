@@ -20,4 +20,7 @@ Route::get('/', function () {
 Auth::routes();
 
 Route::get('/home', 'HomeController@index')->name('home');
-Route::resource('/users','UserController');
+
+Route::middleware('can:manage-users')->group(function() {
+    Route::resource('/users','UserController');
+});
